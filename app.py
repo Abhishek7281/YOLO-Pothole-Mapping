@@ -481,6 +481,13 @@ st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
 
 # ✅ Load YOLOv10n Model
 @st.cache_resource()  # Cache model for faster processing
+
+import asyncio
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.run(asyncio.sleep(0))  # Fix async event loop issue
+
 def load_model():
     model_path = "project_files/best.pt"  # ✅ Path to trained YOLOv10n model
     device = "cuda" if torch.cuda.is_available() else "cpu"
