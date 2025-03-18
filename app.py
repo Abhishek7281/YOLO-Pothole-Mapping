@@ -475,14 +475,14 @@ from PIL import Image
 import tempfile
 import torch
 from ultralytics import YOLO
-
+import asyncio
 # ✅ Increase File Upload Limit (Must be set in `.streamlit/config.toml` too)
 st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
 
 # ✅ Load YOLOv10n Model
 @st.cache_resource()  # Cache model for faster processing
 
-import asyncio
+# import asyncio
 try:
     asyncio.get_running_loop()
 except RuntimeError:
