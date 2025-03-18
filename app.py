@@ -625,7 +625,10 @@ def load_model():
     model = YOLO(model_path).to(device)
     return model
 
-def detect_potholes(image):
+def detect_potholes(image, model):
+    """
+    Detect potholes using YOLOv10n and display bounding boxes & confidence scores.
+    """
     results = model(image)
 
     for r in results:
@@ -655,7 +658,6 @@ def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
     st.title("🛣️ YOLOv10n Pothole Detection System")
 
-    # ✅ Fix Async Event Loop Issue
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -695,7 +697,7 @@ def main():
                 if not ret:
                     break
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  
-                detected_frame = detect_potholes(frame_rgb)
+                detected_frame = detect_potholes(frame_rgb, model)  # ✅ Pass model here
                 detected_frame = cv2.cvtColor(detected_frame, cv2.COLOR_RGB2BGR)  
                 out.write(detected_frame)
 
@@ -714,7 +716,7 @@ def main():
         else:
             image = Image.open(file_path)
             img_array = np.array(image)
-            detected_img = detect_potholes(img_array)
+            detected_img = detect_potholes(img_array, model)  # ✅ Pass model here
             detected_pil = Image.fromarray(detected_img)
 
             col1, col2 = st.columns(2)
