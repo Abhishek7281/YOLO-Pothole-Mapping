@@ -750,6 +750,11 @@ import torch
 from ultralytics import YOLO
 import pandas as pd
 import zipfile
+import asyncio
+
+# Fix asyncio event loop issue in Streamlit
+if not asyncio.get_event_loop().is_running():
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 def load_model():
     model_path = "project_files/best.pt"  
