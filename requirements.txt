@@ -6,7 +6,7 @@
 # Pillow
 # numpy
 
-streamlit
+streamlit==1.25.0
 torch
 torchvision
 ultralytics
