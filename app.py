@@ -873,7 +873,7 @@ if __name__ == "__main__":
     main()
 
 
-
+# Data process not in ram
 # import streamlit as st
 # import os
 # import cv2
