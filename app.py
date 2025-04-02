@@ -608,6 +608,137 @@
 # if __name__ == "__main__":
 #     main()
 
+# original
+# import streamlit as st
+# import os
+# import cv2
+# import numpy as np
+# from PIL import Image
+# import tempfile
+# import torch
+# from ultralytics import YOLO
+# import asyncio
+
+# def load_model():
+#     model_path = "project_files/best.pt"  
+#     device = "cuda" if torch.cuda.is_available() else "cpu"
+#     model = YOLO(model_path).to(device)
+#     return model
+
+# def detect_potholes(image, model):
+#     """
+#     Detect potholes using YOLOv10n and display bounding boxes & confidence scores.
+#     """
+#     results = model(image)
+
+#     for r in results:
+#         for box in r.boxes:
+#             x1, y1, x2, y2 = map(int, box.xyxy[0])  
+#             confidence = float(box.conf[0])  
+
+#             bbox_color = (0, 255, 0)  
+#             text_color = (0, 0, 0)  
+#             thickness = 4  
+#             font_scale = 1.2
+#             font_thickness = 3
+
+#             cv2.rectangle(image, (x1, y1), (x2, y2), bbox_color, thickness)
+
+#             label = f"{confidence:.2f}"
+#             (text_width, text_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
+#             cv2.rectangle(image, (x1, y1 - text_height - 10), 
+#                           (x1 + text_width + 10, y1), bbox_color, -1)  
+
+#             cv2.putText(image, label, (x1 + 5, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX,
+#                         font_scale, text_color, font_thickness, cv2.LINE_AA)
+
+#     return image
+
+# def main():
+#     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
+#     st.title("🛣️ YOLOv10n Pothole Detection System")
+
+#     try:
+#         asyncio.get_running_loop()
+#     except RuntimeError:
+#         asyncio.run(asyncio.sleep(0))
+
+#     model = load_model()  
+
+#     uploaded_file = st.file_uploader("Upload an image or video (Up to 1GB)...", type=["jpg", "png", "jpeg", "mp4"])
+
+#     if uploaded_file is not None:
+#         temp_dir = tempfile.mkdtemp()  
+#         file_path = os.path.join(temp_dir, uploaded_file.name)
+
+#         with open(file_path, "wb") as f:
+#             f.write(uploaded_file.read())
+
+#         file_size_mb = round(os.path.getsize(file_path) / (1024 * 1024), 2)
+#         st.success(f"✅ File uploaded: {uploaded_file.name} (Size: {file_size_mb} MB)")
+
+#         is_video = uploaded_file.type.startswith("video/")
+
+#         if is_video:
+#             video = cv2.VideoCapture(file_path)
+#             output_video_path = os.path.join(temp_dir, "processed_video.mp4")
+#             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+#             fps = int(video.get(cv2.CAP_PROP_FPS))
+#             frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+#             frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#             out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+
+#             progress_bar = st.progress(0)
+#             total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+#             frame_count = 0
+
+#             while True:
+#                 ret, frame = video.read()
+#                 if not ret:
+#                     break
+#                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  
+#                 detected_frame = detect_potholes(frame_rgb, model)  # ✅ Pass model here
+#                 detected_frame = cv2.cvtColor(detected_frame, cv2.COLOR_RGB2BGR)  
+#                 out.write(detected_frame)
+
+#                 frame_count += 1
+#                 progress_bar.progress(min(frame_count / total_frames, 1.0))
+
+#             video.release()
+#             out.release()
+#             st.success("✅ Video processing complete!")
+
+#             st.video(output_video_path)
+
+#             with open(output_video_path, "rb") as file:
+#                 st.download_button("Download Processed Video", file, file_name="processed_video.mp4", mime="video/mp4")
+
+#         else:
+#             image = Image.open(file_path)
+#             img_array = np.array(image)
+#             detected_img = detect_potholes(img_array, model)  # ✅ Pass model here
+#             detected_pil = Image.fromarray(detected_img)
+
+#             col1, col2 = st.columns(2)
+#             with col1:
+#                 st.image(image, caption="Original Image", width=625)
+#             with col2:
+#                 st.image(detected_pil, caption="Detected Potholes", width=625)
+
+#             output_image_path = os.path.join(temp_dir, "processed_image.png")
+#             detected_pil.save(output_image_path)
+#             with open(output_image_path, "rb") as file:
+#                 st.download_button("Download Processed Image", file, file_name="processed_image.png", mime="image/png")
+
+# if __name__ == "__main__":
+#     main()
+
+
+
+
+
+
+
 
 import streamlit as st
 import os
@@ -617,7 +748,8 @@ from PIL import Image
 import tempfile
 import torch
 from ultralytics import YOLO
-import asyncio
+import pandas as pd
+import zipfile
 
 def load_model():
     model_path = "project_files/best.pt"  
@@ -626,109 +758,91 @@ def load_model():
     return model
 
 def detect_potholes(image, model):
-    """
-    Detect potholes using YOLOv10n and display bounding boxes & confidence scores.
-    """
     results = model(image)
-
+    pothole_data = []
     for r in results:
         for box in r.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])  
-            confidence = float(box.conf[0])  
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            confidence = float(box.conf[0])
+            pothole_data.append([x1, y1, x2, y2, confidence])
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 3)
+            cv2.putText(image, f"{confidence:.2f}", (x1, y1 - 10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    return image, pothole_data
 
-            bbox_color = (0, 255, 0)  
-            text_color = (0, 0, 0)  
-            thickness = 4  
-            font_scale = 1.2
-            font_thickness = 3
-
-            cv2.rectangle(image, (x1, y1), (x2, y2), bbox_color, thickness)
-
-            label = f"{confidence:.2f}"
-            (text_width, text_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
-            cv2.rectangle(image, (x1, y1 - text_height - 10), 
-                          (x1 + text_width + 10, y1), bbox_color, -1)  
-
-            cv2.putText(image, label, (x1 + 5, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX,
-                        font_scale, text_color, font_thickness, cv2.LINE_AA)
-
-    return image
+def merge_gps_data(pothole_data, gps_data, frame_index):
+    merged_data = []
+    if frame_index < len(gps_data):
+        gps_lat, gps_lon = gps_data.iloc[frame_index][['Latitude', 'Longitude']]
+        for x1, y1, x2, y2, confidence in pothole_data:
+            merged_data.append([frame_index, gps_lat, gps_lon, x1, y1, x2, y2, confidence])
+    return merged_data
 
 def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
-    st.title("🛣️ YOLOv10n Pothole Detection System")
+    st.title("🛣️ YOLOv10n Pothole Detection System with GPS")
 
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        asyncio.run(asyncio.sleep(0))
+    model = load_model()
 
-    model = load_model()  
+    uploaded_video = st.file_uploader("Upload a video (Up to 1GB)...", type=["mp4"])
+    uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
 
-    uploaded_file = st.file_uploader("Upload an image or video (Up to 1GB)...", type=["jpg", "png", "jpeg", "mp4"])
+    if uploaded_video and uploaded_gps:
+        temp_dir = tempfile.mkdtemp()
+        video_path = os.path.join(temp_dir, uploaded_video.name)
+        gps_path = os.path.join(temp_dir, uploaded_gps.name)
 
-    if uploaded_file is not None:
-        temp_dir = tempfile.mkdtemp()  
-        file_path = os.path.join(temp_dir, uploaded_file.name)
+        with open(video_path, "wb") as f:
+            f.write(uploaded_video.read())
+        with open(gps_path, "wb") as f:
+            f.write(uploaded_gps.read())
 
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.read())
+        gps_data = pd.read_csv(gps_path)
+        video = cv2.VideoCapture(video_path)
+        output_video_path = os.path.join(temp_dir, "processed_video.mp4")
+        frames_folder = os.path.join(temp_dir, "frames")
+        os.makedirs(frames_folder, exist_ok=True)
 
-        file_size_mb = round(os.path.getsize(file_path) / (1024 * 1024), 2)
-        st.success(f"✅ File uploaded: {uploaded_file.name} (Size: {file_size_mb} MB)")
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        fps = int(video.get(cv2.CAP_PROP_FPS))
+        frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
-        is_video = uploaded_file.type.startswith("video/")
+        pothole_results = []
+        frame_index = 0
+        
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
+            detected_frame, pothole_data = detect_potholes(frame, model)
+            out.write(detected_frame)
+            frame_filename = f"frame_{frame_index:04d}.png"
+            cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
+            pothole_results.extend(merge_gps_data(pothole_data, gps_data, frame_index))
+            frame_index += 1
 
-        if is_video:
-            video = cv2.VideoCapture(file_path)
-            output_video_path = os.path.join(temp_dir, "processed_video.mp4")
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            fps = int(video.get(cv2.CAP_PROP_FPS))
-            frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-            frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+        video.release()
+        out.release()
 
-            progress_bar = st.progress(0)
-            total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-            frame_count = 0
+        pothole_df = pd.DataFrame(pothole_results, 
+            columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+        pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
+        pothole_df.to_csv(pothole_csv_path, index=False)
 
-            while True:
-                ret, frame = video.read()
-                if not ret:
-                    break
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  
-                detected_frame = detect_potholes(frame_rgb, model)  # ✅ Pass model here
-                detected_frame = cv2.cvtColor(detected_frame, cv2.COLOR_RGB2BGR)  
-                out.write(detected_frame)
-
-                frame_count += 1
-                progress_bar.progress(min(frame_count / total_frames, 1.0))
-
-            video.release()
-            out.release()
-            st.success("✅ Video processing complete!")
-
-            st.video(output_video_path)
-
-            with open(output_video_path, "rb") as file:
-                st.download_button("Download Processed Video", file, file_name="processed_video.mp4", mime="video/mp4")
-
-        else:
-            image = Image.open(file_path)
-            img_array = np.array(image)
-            detected_img = detect_potholes(img_array, model)  # ✅ Pass model here
-            detected_pil = Image.fromarray(detected_img)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                st.image(image, caption="Original Image", width=625)
-            with col2:
-                st.image(detected_pil, caption="Detected Potholes", width=625)
-
-            output_image_path = os.path.join(temp_dir, "processed_image.png")
-            detected_pil.save(output_image_path)
-            with open(output_image_path, "rb") as file:
-                st.download_button("Download Processed Image", file, file_name="processed_image.png", mime="image/png")
+        zip_path = os.path.join(temp_dir, "processed_results.zip")
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            zipf.write(output_video_path, "processed_video.mp4")
+            zipf.write(pothole_csv_path, "pothole_coordinates.csv")
+            for frame in os.listdir(frames_folder):
+                zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
+        
+        st.success("✅ Video processing complete!")
+        st.video(output_video_path)
+        
+        with open(zip_path, "rb") as file:
+            st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip")
 
 if __name__ == "__main__":
     main()
