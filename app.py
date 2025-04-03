@@ -968,37 +968,38 @@ def main():
     uploaded_file = st.file_uploader("Upload a video (Up to 1GB)...", type=["mp4", "avi", "mov"])
     uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
     
-    if uploaded_file and uploaded_gps and "processed" not in st.session_state:
-        temp_dir = tempfile.mkdtemp()
-        file_path = os.path.join(temp_dir, uploaded_file.name)
-        gps_path = os.path.join(temp_dir, uploaded_gps.name)
-        
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.read())
-        with open(gps_path, "wb") as f:
-            f.write(uploaded_gps.read())
-        
-        gps_data = pd.read_csv(gps_path)
-        
-        st.subheader("Processing video...")
-        progress_bar = st.progress(0)
-        
-        output_video_path, frames_folder, pothole_csv_path = process_video(
-            file_path, gps_data, st.session_state.model, temp_dir, progress_bar
-        )
-        
-        zip_path = os.path.join(temp_dir, "processed_results.zip")
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
-            zipf.write(output_video_path, "processed_video.mp4")
-            zipf.write(pothole_csv_path, "pothole_coordinates.csv")
-            for frame in os.listdir(frames_folder):
-                zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
-        
-        st.session_state.processed = {
-            "output_video_path": output_video_path,
-            "pothole_csv_path": pothole_csv_path,
-            "zip_path": zip_path
-        }
+    if uploaded_file and uploaded_gps:
+        if st.button("Start Processing"):
+            temp_dir = tempfile.mkdtemp()
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            gps_path = os.path.join(temp_dir, uploaded_gps.name)
+            
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.read())
+            with open(gps_path, "wb") as f:
+                f.write(uploaded_gps.read())
+            
+            gps_data = pd.read_csv(gps_path)
+            
+            st.subheader("Processing video...")
+            progress_bar = st.progress(0)
+            
+            output_video_path, frames_folder, pothole_csv_path = process_video(
+                file_path, gps_data, st.session_state.model, temp_dir, progress_bar
+            )
+            
+            zip_path = os.path.join(temp_dir, "processed_results.zip")
+            with zipfile.ZipFile(zip_path, 'w') as zipf:
+                zipf.write(output_video_path, "processed_video.mp4")
+                zipf.write(pothole_csv_path, "pothole_coordinates.csv")
+                for frame in os.listdir(frames_folder):
+                    zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
+            
+            st.session_state.processed = {
+                "output_video_path": output_video_path,
+                "pothole_csv_path": pothole_csv_path,
+                "zip_path": zip_path
+            }
     
     if "processed" in st.session_state:
         st.success("✅ Processing complete!")
