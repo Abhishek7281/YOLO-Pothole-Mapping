@@ -1006,7 +1006,9 @@ def main():
         st.video(st.session_state.processed["output_video_path"])
         
         with open(st.session_state.processed["zip_path"], "rb") as file:
-            st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip")
+            if st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip"):
+                st.session_state.clear()
+                st.rerun()
 
 if __name__ == "__main__":
     main()
