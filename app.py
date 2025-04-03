@@ -894,25 +894,20 @@ def detect_potholes(image, model):
     image_copy = image.copy()
     results = model(image_copy)
     pothole_data = []
+    
     for r in results:
         for box in r.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             confidence = float(box.conf[0])
-            pothole_data.append([x1, y1, x2, y2, confidence])
-            cv2.rectangle(image_copy, (x1, y1), (x2, y2), (0, 255, 0), 3)
-            cv2.putText(image_copy, f"{confidence:.2f}", (x1, y1 - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+            
+            if confidence > 0.5:  # Keep only high-confidence detections
+                pothole_data.append([x1, y1, x2, y2, confidence])
+                cv2.rectangle(image_copy, (x1, y1), (x2, y2), (255, 0, 0), 3)  # Blue box only
+                cv2.putText(image_copy, f"{confidence:.2f}", (x1, y1 - 10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     return image_copy, pothole_data
 
-def merge_gps_data(pothole_data, gps_data, frame_index):
-    merged_data = []
-    if frame_index < len(gps_data):
-        gps_lat, gps_lon = gps_data.iloc[frame_index][['Latitude', 'Longitude']]
-        for x1, y1, x2, y2, confidence in pothole_data:
-            merged_data.append([frame_index, gps_lat, gps_lon, x1, y1, x2, y2, confidence])
-    return merged_data
-
-def process_video(video_path, gps_data, model, temp_dir):
+def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     video = cv2.VideoCapture(video_path)
     output_video_path = os.path.join(temp_dir, "processed_video.mp4")
     frames_folder = os.path.join(temp_dir, "frames")
@@ -922,6 +917,7 @@ def process_video(video_path, gps_data, model, temp_dir):
     fps = int(video.get(cv2.CAP_PROP_FPS))
     frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
     
     pothole_results = []
@@ -938,14 +934,17 @@ def process_video(video_path, gps_data, model, temp_dir):
             frame_filename = f"frame_{frame_index:04d}.png"
             cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
         
-        pothole_results.extend(merge_gps_data(pothole_data, gps_data, frame_index))
+        pothole_results.extend([[frame_index] + d for d in pothole_data])
         frame_index += 1
+        
+        # Update progress bar
+        progress_bar.progress(frame_index / total_frames)
     
     video.release()
     out.release()
     
     pothole_df = pd.DataFrame(pothole_results, 
-        columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+        columns=["Frame", "X1", "Y1", "X2", "Y2", "Confidence"])
     pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
     pothole_df.to_csv(pothole_csv_path, index=False)
     
@@ -954,41 +953,39 @@ def process_video(video_path, gps_data, model, temp_dir):
 def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
     st.title("🛣️ YOLOv10n Pothole Detection System with GPS")
-
+    
     if "model" not in st.session_state:
         st.session_state.model = load_model()
-
-    uploaded_file = st.file_uploader("Upload an image or video (Up to 1GB)...", type=["mp4", "avi", "mov"])
-    uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
-
-    if uploaded_file and uploaded_gps and "processed" not in st.session_state:
+    
+    uploaded_file = st.file_uploader("Upload a video (Up to 1GB)...", type=["mp4", "avi", "mov"])
+    
+    if uploaded_file and "processed" not in st.session_state:
         temp_dir = tempfile.mkdtemp()
         file_path = os.path.join(temp_dir, uploaded_file.name)
-        gps_path = os.path.join(temp_dir, uploaded_gps.name)
-
+        
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
-        with open(gps_path, "wb") as f:
-            f.write(uploaded_gps.read())
-
-        gps_data = pd.read_csv(gps_path)
         
-        output_video_path, frames_folder, pothole_csv_path = process_video(file_path, gps_data, st.session_state.model, temp_dir)
+        st.subheader("Processing video...")
+        progress_bar = st.progress(0)
+        
+        output_video_path, frames_folder, pothole_csv_path = process_video(
+            file_path, pd.DataFrame(), st.session_state.model, temp_dir, progress_bar
+        )
         
         zip_path = os.path.join(temp_dir, "processed_results.zip")
         with zipfile.ZipFile(zip_path, 'w') as zipf:
             zipf.write(output_video_path, "processed_video.mp4")
             zipf.write(pothole_csv_path, "pothole_coordinates.csv")
-            if os.path.exists(frames_folder):
-                for frame in os.listdir(frames_folder):
-                    zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
-
+            for frame in os.listdir(frames_folder):
+                zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
+        
         st.session_state.processed = {
             "output_video_path": output_video_path,
             "pothole_csv_path": pothole_csv_path,
             "zip_path": zip_path
         }
-
+    
     if "processed" in st.session_state:
         st.success("✅ Processing complete!")
         st.video(st.session_state.processed["output_video_path"])
