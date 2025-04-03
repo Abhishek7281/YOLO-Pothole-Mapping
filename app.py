@@ -1000,18 +1000,21 @@ def main():
                 "pothole_csv_path": pothole_csv_path,
                 "zip_path": zip_path
             }
+            st.session_state.download_clicked = False  # Track download state
     
-    if "processed" in st.session_state:
+    if "processed" in st.session_state and not st.session_state.get("download_clicked", False):
         st.success("✅ Processing complete!")
         st.video(st.session_state.processed["output_video_path"])
         
         with open(st.session_state.processed["zip_path"], "rb") as file:
             if st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip"):
-                st.session_state.clear()
-                st.rerun()
+                st.session_state.download_clicked = True  # Mark download as clicked
+                st.session_state.clear()  # Clear session state
+                st.rerun()  # Refresh the app
 
 if __name__ == "__main__":
     main()
+
 
 
 # Data process not in ram
