@@ -907,6 +907,14 @@ def detect_potholes(image, model):
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     return image_copy, pothole_data
 
+def merge_gps_data(pothole_data, gps_data, frame_index):
+    merged_data = []
+    if not gps_data.empty and frame_index < len(gps_data):
+        gps_lat, gps_lon = gps_data.iloc[frame_index][['Latitude', 'Longitude']]
+        for x1, y1, x2, y2, confidence in pothole_data:
+            merged_data.append([frame_index, gps_lat, gps_lon, x1, y1, x2, y2, confidence])
+    return merged_data
+
 def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     video = cv2.VideoCapture(video_path)
     output_video_path = os.path.join(temp_dir, "processed_video.mp4")
@@ -934,7 +942,7 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
             frame_filename = f"frame_{frame_index:04d}.png"
             cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
         
-        pothole_results.extend([[frame_index] + d for d in pothole_data])
+        pothole_results.extend(merge_gps_data(pothole_data, gps_data, frame_index))
         frame_index += 1
         
         # Update progress bar
@@ -944,7 +952,7 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     out.release()
     
     pothole_df = pd.DataFrame(pothole_results, 
-        columns=["Frame", "X1", "Y1", "X2", "Y2", "Confidence"])
+        columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
     pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
     pothole_df.to_csv(pothole_csv_path, index=False)
     
@@ -958,19 +966,25 @@ def main():
         st.session_state.model = load_model()
     
     uploaded_file = st.file_uploader("Upload a video (Up to 1GB)...", type=["mp4", "avi", "mov"])
+    uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
     
-    if uploaded_file and "processed" not in st.session_state:
+    if uploaded_file and uploaded_gps and "processed" not in st.session_state:
         temp_dir = tempfile.mkdtemp()
         file_path = os.path.join(temp_dir, uploaded_file.name)
+        gps_path = os.path.join(temp_dir, uploaded_gps.name)
         
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
+        with open(gps_path, "wb") as f:
+            f.write(uploaded_gps.read())
+        
+        gps_data = pd.read_csv(gps_path)
         
         st.subheader("Processing video...")
         progress_bar = st.progress(0)
         
         output_video_path, frames_folder, pothole_csv_path = process_video(
-            file_path, pd.DataFrame(), st.session_state.model, temp_dir, progress_bar
+            file_path, gps_data, st.session_state.model, temp_dir, progress_bar
         )
         
         zip_path = os.path.join(temp_dir, "processed_results.zip")
