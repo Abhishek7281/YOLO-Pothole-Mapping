@@ -955,12 +955,13 @@ def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
     st.title("🛣️ YOLOv10n Pothole Detection System with GPS")
 
-    model = load_model()
+    if "model" not in st.session_state:
+        st.session_state.model = load_model()
 
-    uploaded_file = st.file_uploader("Upload an image or video (Up to 1GB)...", type=["jpg", "jpeg", "png", "bmp", "tiff", "mp4", "avi", "mov"])
+    uploaded_file = st.file_uploader("Upload an image or video (Up to 1GB)...", type=["mp4", "avi", "mov"])
     uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
 
-    if uploaded_file and uploaded_gps:
+    if uploaded_file and uploaded_gps and "processed" not in st.session_state:
         temp_dir = tempfile.mkdtemp()
         file_path = os.path.join(temp_dir, uploaded_file.name)
         gps_path = os.path.join(temp_dir, uploaded_gps.name)
@@ -971,10 +972,8 @@ def main():
             f.write(uploaded_gps.read())
 
         gps_data = pd.read_csv(gps_path)
-        is_video = uploaded_file.type.startswith("video/")
         
-        if is_video:
-            output_video_path, frames_folder, pothole_csv_path = process_video(file_path, gps_data, model, temp_dir)
+        output_video_path, frames_folder, pothole_csv_path = process_video(file_path, gps_data, st.session_state.model, temp_dir)
         
         zip_path = os.path.join(temp_dir, "processed_results.zip")
         with zipfile.ZipFile(zip_path, 'w') as zipf:
@@ -983,15 +982,23 @@ def main():
             if os.path.exists(frames_folder):
                 for frame in os.listdir(frames_folder):
                     zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
-        
+
+        st.session_state.processed = {
+            "output_video_path": output_video_path,
+            "pothole_csv_path": pothole_csv_path,
+            "zip_path": zip_path
+        }
+
+    if "processed" in st.session_state:
         st.success("✅ Processing complete!")
-        st.video(output_video_path)
+        st.video(st.session_state.processed["output_video_path"])
         
-        with open(zip_path, "rb") as file:
+        with open(st.session_state.processed["zip_path"], "rb") as file:
             st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip")
 
 if __name__ == "__main__":
     main()
+
 
 # Data process not in ram
 # import streamlit as st
