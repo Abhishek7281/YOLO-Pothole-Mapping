@@ -1,2 +1,2 @@
 [server]
-maxUploadSize = 5000  # Set max file upload size to 5GB
+maxUploadSize = 25000  # Set max file upload size to 5GB
