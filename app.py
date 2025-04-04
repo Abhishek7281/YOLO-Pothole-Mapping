@@ -965,7 +965,7 @@ def main():
     if "model" not in st.session_state:
         st.session_state.model = load_model()
     
-    uploaded_file = st.file_uploader("Upload a video (Up to 1GB)...", type=["mp4", "avi", "mov"])
+    uploaded_file = st.file_uploader("Upload a video (Up to 5GB)...", type=["mp4", "avi", "mov"])
     uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
     
     if uploaded_file and uploaded_gps:
