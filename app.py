@@ -1795,7 +1795,7 @@ def create_pothole_map(gps_points, heatmap=False):
 #     main()
 
 # Original 7 (15-05-2025)
-    import streamlit as st
+import streamlit as st
 import os
 import cv2
 import numpy as np
