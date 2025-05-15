@@ -1383,284 +1383,284 @@
 #     main()
 
 # Original 5 (15-05-2025)
-# import streamlit as st
-# import os
-# import cv2
-# import numpy as np
-# from PIL import Image
-# import tempfile
-# import torch
-# from ultralytics import YOLO
-# import pandas as pd
-# import zipfile
-# import folium
-# from folium.plugins import HeatMap
-# from streamlit_folium import st_folium
-
-# def load_model():
-#     model_path = "project_files/best.pt"  # Update with your model path
-#     device = "cuda" if torch.cuda.is_available() else "cpu"
-#     model = YOLO(model_path).to(device)
-#     return model
-
-# def detect_potholes(image, model):
-#     image_copy = image.copy()
-#     results = model(image_copy)
-#     pothole_data = []
-
-#     for r in results:
-#         for box in r.boxes:
-#             x1, y1, x2, y2 = map(int, box.xyxy[0])
-#             confidence = float(box.conf[0])
-
-#             if confidence > 0.5:
-#                 pothole_data.append([x1, y1, x2, y2, confidence])
-#                 cv2.rectangle(image_copy, (x1, y1), (x2, y2), (255, 0, 0), 3)
-#                 cv2.putText(image_copy, f"{confidence:.2f}", (x1, y1 - 10),
-#                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-#     return image_copy, pothole_data
-
-# def merge_gps_data(pothole_data, gps_data, frame_index):
-#     merged_data = []
-#     if not gps_data.empty and frame_index < len(gps_data):
-#         gps_lat, gps_lon = gps_data.iloc[frame_index][['Latitude', 'Longitude']]
-#         for x1, y1, x2, y2, confidence in pothole_data:
-#             merged_data.append([frame_index, gps_lat, gps_lon, x1, y1, x2, y2, confidence])
-#     return merged_data
-
-# def process_video(video_path, gps_data, model, temp_dir, progress_bar):
-#     video = cv2.VideoCapture(video_path)
-#     output_video_path = os.path.join(temp_dir, "processed_video.mp4")
-#     frames_folder = os.path.join(temp_dir, "frames")
-#     os.makedirs(frames_folder, exist_ok=True)
-
-#     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-#     fps = int(video.get(cv2.CAP_PROP_FPS))
-#     frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-#     frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-#     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-#     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
-
-#     pothole_results = []
-#     gps_points_all = []  # For heatmap (lat, lon per pothole)
-#     frame_index = 0
-
-#     while True:
-#         ret, frame = video.read()
-#         if not ret:
-#             break
-
-#         detected_frame, pothole_data = detect_potholes(frame, model)
-#         out.write(detected_frame)
-
-#         if pothole_data:
-#             frame_filename = f"frame_{frame_index:04d}.png"
-#             cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
-
-#         merged = merge_gps_data(pothole_data, gps_data, frame_index)
-#         pothole_results.extend(merged)
-
-#         for item in merged:
-#             gps_points_all.append((item[1], item[2]))  # Latitude, Longitude
-#             # gps_points_all.append((item[1], item[2], item[7]))  # Latitude, Longitude, Confidence
-
-
-#         frame_index += 1
-#         progress_bar.progress(frame_index / total_frames)
-
-#     video.release()
-#     out.release()
-
-#     pothole_df = pd.DataFrame(pothole_results,
-#         columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
-#     pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
-#     pothole_df.to_csv(pothole_csv_path, index=False)
-
-#     return output_video_path, frames_folder, pothole_csv_path, gps_points_all
-
-# def create_pothole_map(gps_points, heatmap=False):
-#     if not gps_points:
-#         return None
-
-#     avg_lat = np.mean([lat for lat, _ in gps_points])
-#     avg_lon = np.mean([lon for _, lon in gps_points])
-#     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
-
-#     if heatmap:
-#         HeatMap(gps_points, radius=15).add_to(m)
-#     else:
-#         for lat, lon in gps_points:
-#             folium.Marker(
-#                 location=[lat, lon],
-#                 icon=folium.Icon(color='red', icon='exclamation-sign')
-#             ).add_to(m)
-
-#     return m
-
-# Original 6 (15-05-2025)
 import streamlit as st
 import os
 import cv2
-import tempfile
-import zipfile
-import shutil
 import numpy as np
+from PIL import Image
+import tempfile
+import torch
+from ultralytics import YOLO
 import pandas as pd
+import zipfile
 import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
-from datetime import datetime
-from ultralytics import YOLO
 
-# MUST BE FIRST STREAMLIT COMMAND
-st.set_page_config(page_title="Pothole Detection", layout="wide")
-
-# ===============================
-# Function to run YOLO detection
-# ===============================
-@st.cache_resource
 def load_model():
-    return YOLO("yolov10n.pt")
+    model_path = "project_files/best.pt"  # Update with your model path
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = YOLO(model_path).to(device)
+    return model
 
-def detect_potholes_on_frame(model, frame):
-    results = model(frame)[0]
-    boxes = []
-    for box in results.boxes.data.cpu().numpy():
-        x1, y1, x2, y2, confidence, cls = box
-        if int(cls) == 0:  # Assuming potholes are class 0
-            boxes.append([int(x1), int(y1), int(x2), int(y2), float(confidence)])
-    return boxes
+def detect_potholes(image, model):
+    image_copy = image.copy()
+    results = model(image_copy)
+    pothole_data = []
 
-# =============================
-# GPS parsing and visualization
-# =============================
-def parse_gps_csv(file):
-    df = pd.read_csv(file)
-    if {'latitude', 'longitude'}.issubset(df.columns):
-        return df[['latitude', 'longitude']].values.tolist()
-    else:
-        st.error("GPS CSV must contain 'latitude' and 'longitude' columns.")
-        return []
+    for r in results:
+        for box in r.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            confidence = float(box.conf[0])
+
+            if confidence > 0.5:
+                pothole_data.append([x1, y1, x2, y2, confidence])
+                cv2.rectangle(image_copy, (x1, y1), (x2, y2), (255, 0, 0), 3)
+                cv2.putText(image_copy, f"{confidence:.2f}", (x1, y1 - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    return image_copy, pothole_data
+
+def merge_gps_data(pothole_data, gps_data, frame_index):
+    merged_data = []
+    if not gps_data.empty and frame_index < len(gps_data):
+        gps_lat, gps_lon = gps_data.iloc[frame_index][['Latitude', 'Longitude']]
+        for x1, y1, x2, y2, confidence in pothole_data:
+            merged_data.append([frame_index, gps_lat, gps_lon, x1, y1, x2, y2, confidence])
+    return merged_data
+
+def process_video(video_path, gps_data, model, temp_dir, progress_bar):
+    video = cv2.VideoCapture(video_path)
+    output_video_path = os.path.join(temp_dir, "processed_video.mp4")
+    frames_folder = os.path.join(temp_dir, "frames")
+    os.makedirs(frames_folder, exist_ok=True)
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fps = int(video.get(cv2.CAP_PROP_FPS))
+    frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+
+    pothole_results = []
+    gps_points_all = []  # For heatmap (lat, lon per pothole)
+    frame_index = 0
+
+    while True:
+        ret, frame = video.read()
+        if not ret:
+            break
+
+        detected_frame, pothole_data = detect_potholes(frame, model)
+        out.write(detected_frame)
+
+        if pothole_data:
+            frame_filename = f"frame_{frame_index:04d}.png"
+            cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
+
+        merged = merge_gps_data(pothole_data, gps_data, frame_index)
+        pothole_results.extend(merged)
+
+        for item in merged:
+            gps_points_all.append((item[1], item[2]))  # Latitude, Longitude
+            # gps_points_all.append((item[1], item[2], item[7]))  # Latitude, Longitude, Confidence
+
+
+        frame_index += 1
+        progress_bar.progress(frame_index / total_frames)
+
+    video.release()
+    out.release()
+
+    pothole_df = pd.DataFrame(pothole_results,
+        columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+    pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
+    pothole_df.to_csv(pothole_csv_path, index=False)
+
+    return output_video_path, frames_folder, pothole_csv_path, gps_points_all
 
 def create_pothole_map(gps_points, heatmap=False):
     if not gps_points:
         return None
-    avg_lat = np.mean([pt[0] for pt in gps_points])
-    avg_lon = np.mean([pt[1] for pt in gps_points])
+
+    avg_lat = np.mean([lat for lat, _ in gps_points])
+    avg_lon = np.mean([lon for _, lon in gps_points])
     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
 
     if heatmap:
-        heat_data = []
-        for pt in gps_points:
-            if len(pt) >= 2:
-                heat_data.append([pt[0], pt[1], pt[2] if len(pt) > 2 else 1.0])
-        HeatMap(heat_data, radius=15).add_to(m)
+        HeatMap(gps_points, radius=15).add_to(m)
     else:
-        for pt in gps_points:
-            if len(pt) >= 2:
-                folium.Marker(location=[pt[0], pt[1]]).add_to(m)
+        for lat, lon in gps_points:
+            folium.Marker(
+                location=[lat, lon],
+                icon=folium.Icon(color='red', icon='exclamation-sign')
+            ).add_to(m)
 
     return m
 
-# ========================
-# Main App Functionality
-# ========================
-def main():
-    st.title("🚗 Pothole Detection with Heatmap Visualization")
+# Original 6 (15-05-2025)
+# import streamlit as st
+# import os
+# import cv2
+# import tempfile
+# import zipfile
+# import shutil
+# import numpy as np
+# import pandas as pd
+# import folium
+# from folium.plugins import HeatMap
+# from streamlit_folium import st_folium
+# from datetime import datetime
+# from ultralytics import YOLO
 
-    uploaded_video = st.file_uploader("Upload Video or Image", type=["mp4", "mov", "avi", "jpg", "png"])
-    uploaded_gps = st.file_uploader("Upload GPS CSV", type=["csv"])
+# # MUST BE FIRST STREAMLIT COMMAND
+# st.set_page_config(page_title="Pothole Detection", layout="wide")
 
-    if uploaded_video and uploaded_gps:
-        with st.spinner("Processing..."):
-            gps_coords = parse_gps_csv(uploaded_gps)
-            pothole_gps = []
+# # ===============================
+# # Function to run YOLO detection
+# # ===============================
+# @st.cache_resource
+# def load_model():
+#     return YOLO("yolov10n.pt")
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                input_path = os.path.join(temp_dir, uploaded_video.name)
-                with open(input_path, 'wb') as f:
-                    f.write(uploaded_video.read())
+# def detect_potholes_on_frame(model, frame):
+#     results = model(frame)[0]
+#     boxes = []
+#     for box in results.boxes.data.cpu().numpy():
+#         x1, y1, x2, y2, confidence, cls = box
+#         if int(cls) == 0:  # Assuming potholes are class 0
+#             boxes.append([int(x1), int(y1), int(x2), int(y2), float(confidence)])
+#     return boxes
 
-                is_image = uploaded_video.type.startswith("image")
-                model = load_model()
+# # =============================
+# # GPS parsing and visualization
+# # =============================
+# def parse_gps_csv(file):
+#     df = pd.read_csv(file)
+#     if {'latitude', 'longitude'}.issubset(df.columns):
+#         return df[['latitude', 'longitude']].values.tolist()
+#     else:
+#         st.error("GPS CSV must contain 'latitude' and 'longitude' columns.")
+#         return []
 
-                output_frames_dir = os.path.join(temp_dir, "output_frames")
-                os.makedirs(output_frames_dir, exist_ok=True)
+# def create_pothole_map(gps_points, heatmap=False):
+#     if not gps_points:
+#         return None
+#     avg_lat = np.mean([pt[0] for pt in gps_points])
+#     avg_lon = np.mean([pt[1] for pt in gps_points])
+#     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
 
-                pothole_frames = []
+#     if heatmap:
+#         heat_data = []
+#         for pt in gps_points:
+#             if len(pt) >= 2:
+#                 heat_data.append([pt[0], pt[1], pt[2] if len(pt) > 2 else 1.0])
+#         HeatMap(heat_data, radius=15).add_to(m)
+#     else:
+#         for pt in gps_points:
+#             if len(pt) >= 2:
+#                 folium.Marker(location=[pt[0], pt[1]]).add_to(m)
 
-                if is_image:
-                    frame = cv2.imread(input_path)
-                    boxes = detect_potholes_on_frame(model, frame)
-                    for (x1, y1, x2, y2, conf) in boxes:
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    out_path = os.path.join(temp_dir, "detected.jpg")
-                    cv2.imwrite(out_path, frame)
-                    pothole_frames.append(out_path)
-                else:
-                    cap = cv2.VideoCapture(input_path)
-                    fps = int(cap.get(cv2.CAP_PROP_FPS))
-                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#     return m
 
-                    output_video_path = os.path.join(temp_dir, "output.mp4")
-                    writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+# # ========================
+# # Main App Functionality
+# # ========================
+# def main():
+#     st.title("🚗 Pothole Detection with Heatmap Visualization")
 
-                    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                    progress = st.progress(0)
+#     uploaded_video = st.file_uploader("Upload Video or Image", type=["mp4", "mov", "avi", "jpg", "png"])
+#     uploaded_gps = st.file_uploader("Upload GPS CSV", type=["csv"])
 
-                    for idx in range(frame_count):
-                        ret, frame = cap.read()
-                        if not ret:
-                            break
-                        boxes = detect_potholes_on_frame(model, frame)
+#     if uploaded_video and uploaded_gps:
+#         with st.spinner("Processing..."):
+#             gps_coords = parse_gps_csv(uploaded_gps)
+#             pothole_gps = []
 
-                        if boxes:
-                            pothole_gps.append(gps_coords[min(idx, len(gps_coords)-1)])
-                            out_img_path = os.path.join(output_frames_dir, f"frame_{idx}.jpg")
-                            pothole_frames.append(out_img_path)
+#             with tempfile.TemporaryDirectory() as temp_dir:
+#                 input_path = os.path.join(temp_dir, uploaded_video.name)
+#                 with open(input_path, 'wb') as f:
+#                     f.write(uploaded_video.read())
 
-                        for (x1, y1, x2, y2, conf) in boxes:
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+#                 is_image = uploaded_video.type.startswith("image")
+#                 model = load_model()
 
-                        writer.write(frame)
-                        progress.progress((idx + 1) / frame_count)
+#                 output_frames_dir = os.path.join(temp_dir, "output_frames")
+#                 os.makedirs(output_frames_dir, exist_ok=True)
 
-                    cap.release()
-                    writer.release()
+#                 pothole_frames = []
 
-                st.success("✅ Detection Complete!")
+#                 if is_image:
+#                     frame = cv2.imread(input_path)
+#                     boxes = detect_potholes_on_frame(model, frame)
+#                     for (x1, y1, x2, y2, conf) in boxes:
+#                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+#                     out_path = os.path.join(temp_dir, "detected.jpg")
+#                     cv2.imwrite(out_path, frame)
+#                     pothole_frames.append(out_path)
+#                 else:
+#                     cap = cv2.VideoCapture(input_path)
+#                     fps = int(cap.get(cv2.CAP_PROP_FPS))
+#                     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+#                     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-                # 🔥 Heatmap and Map
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("**📍 Pothole Marker Map**")
-                    map_markers = create_pothole_map(pothole_gps)
-                    if map_markers:
-                        st_folium(map_markers, width=600, height=450)
+#                     output_video_path = os.path.join(temp_dir, "output.mp4")
+#                     writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
-                with col2:
-                    st.markdown("**🔥 Heatmap**")
-                    heat_map = create_pothole_map(pothole_gps, heatmap=True)
-                    if heat_map:
-                        st_folium(heat_map, width=600, height=450)
+#                     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#                     progress = st.progress(0)
 
-                # ⬇️ ZIP Output
-                zip_path = os.path.join(temp_dir, "pothole_results.zip")
-                with zipfile.ZipFile(zip_path, 'w') as zipf:
-                    if not is_image:
-                        zipf.write(output_video_path, "output.mp4")
-                    for frame in pothole_frames:
-                        zipf.write(frame, os.path.basename(frame))
-                    with open(os.path.join(temp_dir, "gps.txt"), "w") as f:
-                        for lat, lon in pothole_gps:
-                            f.write(f"{lat}, {lon}\n")
-                    zipf.write(os.path.join(temp_dir, "gps.txt"), "pothole_gps.txt")
+#                     for idx in range(frame_count):
+#                         ret, frame = cap.read()
+#                         if not ret:
+#                             break
+#                         boxes = detect_potholes_on_frame(model, frame)
 
-                st.download_button("📦 Download ZIP", open(zip_path, 'rb'), file_name="pothole_results.zip")
+#                         if boxes:
+#                             pothole_gps.append(gps_coords[min(idx, len(gps_coords)-1)])
+#                             out_img_path = os.path.join(output_frames_dir, f"frame_{idx}.jpg")
+#                             pothole_frames.append(out_img_path)
 
-if __name__ == "__main__":
-    main()
+#                         for (x1, y1, x2, y2, conf) in boxes:
+#                             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+#                         writer.write(frame)
+#                         progress.progress((idx + 1) / frame_count)
+
+#                     cap.release()
+#                     writer.release()
+
+#                 st.success("✅ Detection Complete!")
+
+#                 # 🔥 Heatmap and Map
+#                 col1, col2 = st.columns(2)
+#                 with col1:
+#                     st.markdown("**📍 Pothole Marker Map**")
+#                     map_markers = create_pothole_map(pothole_gps)
+#                     if map_markers:
+#                         st_folium(map_markers, width=600, height=450)
+
+#                 with col2:
+#                     st.markdown("**🔥 Heatmap**")
+#                     heat_map = create_pothole_map(pothole_gps, heatmap=True)
+#                     if heat_map:
+#                         st_folium(heat_map, width=600, height=450)
+
+#                 # ⬇️ ZIP Output
+#                 zip_path = os.path.join(temp_dir, "pothole_results.zip")
+#                 with zipfile.ZipFile(zip_path, 'w') as zipf:
+#                     if not is_image:
+#                         zipf.write(output_video_path, "output.mp4")
+#                     for frame in pothole_frames:
+#                         zipf.write(frame, os.path.basename(frame))
+#                     with open(os.path.join(temp_dir, "gps.txt"), "w") as f:
+#                         for lat, lon in pothole_gps:
+#                             f.write(f"{lat}, {lon}\n")
+#                     zipf.write(os.path.join(temp_dir, "gps.txt"), "pothole_gps.txt")
+
+#                 st.download_button("📦 Download ZIP", open(zip_path, 'rb'), file_name="pothole_results.zip")
+
+# if __name__ == "__main__":
+#     main()
 
 
 
