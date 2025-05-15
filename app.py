@@ -1962,9 +1962,9 @@ def main():
     if "processed" in st.session_state and not st.session_state.get("download_clicked", False):
         st.success("✅ Processing complete!")
 
-        st.subheader("🎥 Processed Video")
-        with open(st.session_state.processed["output_video_path"], "rb") as video_file:
-            st.video(video_file.read())
+        # st.subheader("🎥 Processed Video")
+        # with open(st.session_state.processed["output_video_path"], "rb") as video_file:
+        #     st.video(video_file.read())
 
         gps_points_all = st.session_state.processed.get("gps_points_all", [])
 
