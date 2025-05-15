@@ -1595,21 +1595,34 @@ def create_pothole_map(gps_points, heatmap=False):
     if not gps_points:
         return None
 
-    avg_lat = np.mean([lat for lat, _, *_ in gps_points])
-    avg_lon = np.mean([lon for _, lon, *_ in gps_points])
+    avg_lat = np.mean([pt[0] for pt in gps_points])
+    avg_lon = np.mean([pt[1] for pt in gps_points])
     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
 
     if heatmap:
-        heat_data = [(lat, lon, conf if len(pt) > 2 else 1.0) for pt in gps_points for lat, lon, *conf in [pt]]
+        # Normalize all points to (lat, lon, intensity)
+        heat_data = []
+        for pt in gps_points:
+            try:
+                lat, lon = pt[0], pt[1]
+                intensity = pt[2] if len(pt) > 2 else 1.0
+                heat_data.append([lat, lon, float(intensity)])
+            except:
+                continue  # skip malformed points
         HeatMap(heat_data, radius=15).add_to(m)
     else:
-        for lat, lon, *_ in gps_points:
-            folium.Marker(
-                location=[lat, lon],
-                icon=folium.Icon(color='red', icon='exclamation-sign')
-            ).add_to(m)
+        for pt in gps_points:
+            try:
+                lat, lon = pt[0], pt[1]
+                folium.Marker(
+                    location=[lat, lon],
+                    icon=folium.Icon(color='red', icon='exclamation-sign')
+                ).add_to(m)
+            except:
+                continue  # skip malformed points
 
     return m
+
 
 def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
