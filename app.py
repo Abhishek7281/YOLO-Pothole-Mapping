@@ -1461,8 +1461,8 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
         pothole_results.extend(merged)
 
         for item in merged:
-            # gps_points_all.append((item[1], item[2]))  # Latitude, Longitude
-            gps_points_all.append((item[1], item[2], item[7]))  # Latitude, Longitude, Confidence
+            gps_points_all.append((item[1], item[2]))  # Latitude, Longitude
+            # gps_points_all.append((item[1], item[2], item[7]))  # Latitude, Longitude, Confidence
 
 
         frame_index += 1
@@ -1478,45 +1478,45 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
 
     return output_video_path, frames_folder, pothole_csv_path, gps_points_all
 
-# def create_pothole_map(gps_points, heatmap=False):
-#     if not gps_points:
-#         return None
-
-#     avg_lat = np.mean([lat for lat, _ in gps_points])
-#     avg_lon = np.mean([lon for _, lon in gps_points])
-#     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
-
-#     if heatmap:
-#         HeatMap(gps_points, radius=15).add_to(m)
-#     else:
-#         for lat, lon in gps_points:
-#             folium.Marker(
-#                 location=[lat, lon],
-#                 icon=folium.Icon(color='red', icon='exclamation-sign')
-#             ).add_to(m)
-
-#     return m
-
 def create_pothole_map(gps_points, heatmap=False):
     if not gps_points:
         return None
 
-    # Unpack values for mean center
-    avg_lat = np.mean([lat for lat, _, _ in gps_points])
-    avg_lon = np.mean([lon for _, lon, _ in gps_points])
+    avg_lat = np.mean([lat for lat, _ in gps_points])
+    avg_lon = np.mean([lon for _, lon in gps_points])
     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
 
     if heatmap:
-        heat_data = [[lat, lon, confidence] for lat, lon, confidence in gps_points]
-        HeatMap(heat_data, radius=15, max_zoom=13, min_opacity=0.3, blur=18, max_val=1.0).add_to(m)
+        HeatMap(gps_points, radius=15).add_to(m)
     else:
-        for lat, lon, _ in gps_points:
+        for lat, lon in gps_points:
             folium.Marker(
                 location=[lat, lon],
                 icon=folium.Icon(color='red', icon='exclamation-sign')
             ).add_to(m)
 
     return m
+
+# def create_pothole_map(gps_points, heatmap=False):
+#     if not gps_points:
+#         return None
+
+#     # Unpack values for mean center
+#     avg_lat = np.mean([lat for lat, _, _ in gps_points])
+#     avg_lon = np.mean([lon for _, lon, _ in gps_points])
+#     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
+
+#     if heatmap:
+#         heat_data = [[lat, lon, confidence] for lat, lon, confidence in gps_points]
+#         HeatMap(heat_data, radius=15, max_zoom=13, min_opacity=0.3, blur=18, max_val=1.0).add_to(m)
+#     else:
+#         for lat, lon, _ in gps_points:
+#             folium.Marker(
+#                 location=[lat, lon],
+#                 icon=folium.Icon(color='red', icon='exclamation-sign')
+#             ).add_to(m)
+
+#     return m
 
 
 def main():
