@@ -1686,86 +1686,86 @@ if __name__ == "__main__":
 #     return m
 
 
-def main():
-    st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
-    st.title("🛣️ YOLOv10n Pothole Detection System with GPS, Count, and Mapping")
+# def main():
+#     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
+#     st.title("🛣️ YOLOv10n Pothole Detection System with GPS, Count, and Mapping")
 
-    if "model" not in st.session_state:
-        st.session_state.model = load_model()
+#     if "model" not in st.session_state:
+#         st.session_state.model = load_model()
 
-    uploaded_file = st.file_uploader("Upload a video (Up to 1TB)...", type=["mp4", "avi", "mov"])
-    uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
+#     uploaded_file = st.file_uploader("Upload a video (Up to 1TB)...", type=["mp4", "avi", "mov"])
+#     uploaded_gps = st.file_uploader("Upload GPS coordinates (CSV file)...", type=["csv"])
 
-    if uploaded_file and uploaded_gps:
-        if st.button("Start Processing"):
-            temp_dir = tempfile.mkdtemp()
-            file_path = os.path.join(temp_dir, uploaded_file.name)
-            gps_path = os.path.join(temp_dir, uploaded_gps.name)
+#     if uploaded_file and uploaded_gps:
+#         if st.button("Start Processing"):
+#             temp_dir = tempfile.mkdtemp()
+#             file_path = os.path.join(temp_dir, uploaded_file.name)
+#             gps_path = os.path.join(temp_dir, uploaded_gps.name)
 
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.read())
-            with open(gps_path, "wb") as f:
-                f.write(uploaded_gps.read())
+#             with open(file_path, "wb") as f:
+#                 f.write(uploaded_file.read())
+#             with open(gps_path, "wb") as f:
+#                 f.write(uploaded_gps.read())
 
-            gps_data = pd.read_csv(gps_path)
+#             gps_data = pd.read_csv(gps_path)
 
-            st.subheader("Processing video...")
-            progress_bar = st.progress(0)
+#             st.subheader("Processing video...")
+#             progress_bar = st.progress(0)
 
-            output_video_path, frames_folder, pothole_csv_path, gps_points_all = process_video(
-                file_path, gps_data, st.session_state.model, temp_dir, progress_bar
-            )
+#             output_video_path, frames_folder, pothole_csv_path, gps_points_all = process_video(
+#                 file_path, gps_data, st.session_state.model, temp_dir, progress_bar
+#             )
 
-            zip_path = os.path.join(temp_dir, "processed_results.zip")
-            with zipfile.ZipFile(zip_path, 'w') as zipf:
-                zipf.write(output_video_path, "processed_video.mp4")
-                zipf.write(pothole_csv_path, "pothole_coordinates.csv")
-                for frame in os.listdir(frames_folder):
-                    zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
+#             zip_path = os.path.join(temp_dir, "processed_results.zip")
+#             with zipfile.ZipFile(zip_path, 'w') as zipf:
+#                 zipf.write(output_video_path, "processed_video.mp4")
+#                 zipf.write(pothole_csv_path, "pothole_coordinates.csv")
+#                 for frame in os.listdir(frames_folder):
+#                     zipf.write(os.path.join(frames_folder, frame), os.path.join("frames", frame))
 
-            st.session_state.processed = {
-                "output_video_path": output_video_path,
-                "pothole_csv_path": pothole_csv_path,
-                "zip_path": zip_path,
-                "gps_points_all": gps_points_all
-            }
-            st.session_state.download_clicked = False
+#             st.session_state.processed = {
+#                 "output_video_path": output_video_path,
+#                 "pothole_csv_path": pothole_csv_path,
+#                 "zip_path": zip_path,
+#                 "gps_points_all": gps_points_all
+#             }
+#             st.session_state.download_clicked = False
 
-    if "processed" in st.session_state and not st.session_state.get("download_clicked", False):
-        st.success("✅ Processing complete!")
-        st.video(st.session_state.processed["output_video_path"])
+#     if "processed" in st.session_state and not st.session_state.get("download_clicked", False):
+#         st.success("✅ Processing complete!")
+#         st.video(st.session_state.processed["output_video_path"])
 
-        gps_points_all = st.session_state.processed.get("gps_points_all", [])
+#         gps_points_all = st.session_state.processed.get("gps_points_all", [])
 
-        st.info(f"🕳️ **Total Potholes Detected:** {len(gps_points_all)}")
+#         st.info(f"🕳️ **Total Potholes Detected:** {len(gps_points_all)}")
 
-        # Side-by-side maps
-        st.subheader("🗺️ Pothole Visualization")
+#         # Side-by-side maps
+#         st.subheader("🗺️ Pothole Visualization")
 
-        col1, col2 = st.columns(2)
+#         col1, col2 = st.columns(2)
 
-        with col1:
-            st.markdown("**📍 Marker Map**")
-            pothole_map = create_pothole_map(gps_points_all, heatmap=False)
-            if pothole_map:
-                st_folium(pothole_map, width=600, height=450)
+#         with col1:
+#             st.markdown("**📍 Marker Map**")
+#             pothole_map = create_pothole_map(gps_points_all, heatmap=False)
+#             if pothole_map:
+#                 st_folium(pothole_map, width=600, height=450)
 
-        with col2:
-            st.markdown("**🔥 Heatmap**")
-            heat_map = create_pothole_map(gps_points_all, heatmap=True)
-            if heat_map:
-                st_folium(heat_map, width=600, height=450)
+#         with col2:
+#             st.markdown("**🔥 Heatmap**")
+#             heat_map = create_pothole_map(gps_points_all, heatmap=True)
+#             if heat_map:
+#                 st_folium(heat_map, width=600, height=450)
 
-        # Download button below maps
-        st.subheader("📥 Download Results")
-        with open(st.session_state.processed["zip_path"], "rb") as file:
-            if st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip"):
-                st.session_state.download_clicked = True
-                st.session_state.clear()
-                st.rerun()
+#         # Download button below maps
+#         st.subheader("📥 Download Results")
+#         with open(st.session_state.processed["zip_path"], "rb") as file:
+#             if st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip"):
+#                 st.session_state.download_clicked = True
+#                 st.session_state.clear()
+#                 st.rerun()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 # import streamlit as st
 # import os
