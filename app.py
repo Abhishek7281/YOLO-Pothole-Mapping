@@ -1497,7 +1497,7 @@
 
 #     return m
 
-def create_pothole_map(gps_points, heatmap=False):
+# def create_pothole_map(gps_points, heatmap=False):
 #     if not gps_points:
 #         return None
 
