@@ -1513,7 +1513,7 @@ from folium.plugins import HeatMap
 from streamlit_folium import st_folium
 
 def load_model():
-    model_path = "project_files/best.pt"
+    model_path = "project_files/best.pt"  # Update with your model path
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = YOLO(model_path).to(device)
     return model
@@ -1527,6 +1527,7 @@ def detect_potholes(image, model):
         for box in r.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             confidence = float(box.conf[0])
+
             if confidence > 0.5:
                 pothole_data.append([x1, y1, x2, y2, confidence])
                 cv2.rectangle(image_copy, (x1, y1), (x2, y2), (255, 0, 0), 3)
@@ -1556,7 +1557,7 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
     pothole_results = []
-    gps_points_all = []  # (lat, lon, confidence)
+    gps_points_all = []  # For heatmap (lat, lon, confidence per pothole)
     frame_index = 0
 
     while True:
@@ -1575,7 +1576,7 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
         pothole_results.extend(merged)
 
         for item in merged:
-            gps_points_all.append((item[1], item[2], item[7]))  # lat, lon, confidence
+            gps_points_all.append((item[1], item[2], item[8]))  # Latitude, Longitude, Confidence
 
         frame_index += 1
         progress_bar.progress(frame_index / total_frames)
@@ -1583,8 +1584,8 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     video.release()
     out.release()
 
-    pothole_df = pd.DataFrame(pothole_results, columns=[
-        "Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+    pothole_df = pd.DataFrame(pothole_results,
+        columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
     pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
     pothole_df.to_csv(pothole_csv_path, index=False)
 
@@ -1594,24 +1595,25 @@ def create_pothole_map(gps_points, heatmap=False):
     if not gps_points:
         return None
 
-    avg_lat = np.mean([pt[0] for pt in gps_points])
-    avg_lon = np.mean([pt[1] for pt in gps_points])
+    avg_lat = np.mean([lat for lat, _, *_ in gps_points])
+    avg_lon = np.mean([lon for _, lon, *_ in gps_points])
     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=16)
 
     if heatmap:
-        heat_data = [[lat, lon, conf] for lat, lon, conf in gps_points]
-        HeatMap(heat_data, radius=15, max_zoom=13, blur=18, min_opacity=0.4).add_to(m)
+        heat_data = [(lat, lon, conf if len(pt) > 2 else 1.0) for pt in gps_points for lat, lon, *conf in [pt]]
+        HeatMap(heat_data, radius=15).add_to(m)
     else:
-        for lat, lon, conf in gps_points:
+        for lat, lon, *_ in gps_points:
             folium.Marker(
                 location=[lat, lon],
                 icon=folium.Icon(color='red', icon='exclamation-sign')
             ).add_to(m)
+
     return m
 
 def main():
     st.set_page_config(page_title="YOLOv10n Pothole Detection", layout="wide")
-    st.title("🛣️ YOLOv10n Pothole Detection System with GPS, Heatmap & Count")
+    st.title("🛣️ YOLOv10n Pothole Detection System with GPS, Count, and Mapping")
 
     if "model" not in st.session_state:
         st.session_state.model = load_model()
@@ -1659,24 +1661,29 @@ def main():
         st.video(st.session_state.processed["output_video_path"])
 
         gps_points_all = st.session_state.processed.get("gps_points_all", [])
+
         st.info(f"🕳️ **Total Potholes Detected:** {len(gps_points_all)}")
+
+        # Ensure 3 values for heatmap
+        gps_points_all = [pt if len(pt) == 3 else (pt[0], pt[1], 1.0) for pt in gps_points_all]
 
         st.subheader("🗺️ Pothole Visualization")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("📍 **Marker Map**")
-            marker_map = create_pothole_map(gps_points_all, heatmap=False)
-            if marker_map:
-                st_folium(marker_map, width=600, height=450)
+            st.markdown("**📍 Marker Map**")
+            pothole_map = create_pothole_map(gps_points_all, heatmap=False)
+            if pothole_map:
+                st_folium(pothole_map, width=600, height=450)
 
         with col2:
-            st.markdown("🔥 **Heatmap (Confidence Intensity)**")
+            st.markdown("**🔥 Heatmap**")
             heat_map = create_pothole_map(gps_points_all, heatmap=True)
             if heat_map:
                 st_folium(heat_map, width=600, height=450)
 
+        # Download button below maps
         st.subheader("📥 Download Results")
         with open(st.session_state.processed["zip_path"], "rb") as file:
             if st.download_button("Download All Processed Data (ZIP)", file, file_name="processed_results.zip", mime="application/zip"):
@@ -1686,6 +1693,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 # def create_pothole_map(gps_points, heatmap=False):
 #     if not gps_points:
