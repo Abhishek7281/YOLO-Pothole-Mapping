@@ -2050,6 +2050,74 @@ def compute_centroid(x1, y1, x2, y2):
     return ((x1 + x2) / 2, (y1 + y2) / 2)
 
 # Process video and extract pothole information
+# def process_video(video_path, gps_data, model, temp_dir, progress_bar):
+#     video = cv2.VideoCapture(video_path)
+#     output_video_path = os.path.join(temp_dir, "processed_video.mp4")
+#     frames_folder = os.path.join(temp_dir, "frames")
+#     os.makedirs(frames_folder, exist_ok=True)
+
+#     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+#     fps = int(video.get(cv2.CAP_PROP_FPS))
+#     frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+#     frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+#     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+
+#     pothole_results = []
+#     gps_points_all = []
+#     unique_potholes = []
+#     unique_potholes_set = []  # (lat, lon) centroids for comparison
+#     frame_index = 0
+
+#     while True:
+#         ret, frame = video.read()
+#         if not ret:
+#             break
+
+#         detected_frame, pothole_data = detect_potholes(frame, model)
+#         out.write(detected_frame)
+
+#         if pothole_data:
+#             frame_filename = f"frame_{frame_index:04d}.png"
+#             cv2.imwrite(os.path.join(frames_folder, frame_filename), detected_frame)
+
+#         merged = merge_gps_data(pothole_data, gps_data, frame_index)
+#         pothole_results.extend(merged)
+
+#         for item in merged:
+#             lat, lon = item[1], item[2]
+#             centroid = compute_centroid(item[3], item[4], item[5], item[6])
+#             latlon_centroid = (lat, lon)
+
+#             # Avoid double-counting similar potholes
+#             is_unique = True
+#             for existing in unique_potholes_set:
+#                 if euclidean(latlon_centroid, existing) < 0.0002:
+#                     is_unique = False
+#                     break
+#             if is_unique:
+#                 unique_potholes.append(item)
+#                 unique_potholes_set.append(latlon_centroid)
+#                 gps_points_all.append((lat, lon))
+
+#         frame_index += 1
+#         progress_bar.progress(frame_index / total_frames)
+
+#     video.release()
+#     out.release()
+
+#     pothole_df = pd.DataFrame(pothole_results,
+#         columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+#     pothole_csv_path = os.path.join(temp_dir, "pothole_coordinates.csv")
+#     pothole_df.to_csv(pothole_csv_path, index=False)
+
+#     unique_df = pd.DataFrame(unique_potholes,
+#         columns=["Frame", "Latitude", "Longitude", "X1", "Y1", "X2", "Y2", "Confidence"])
+#     unique_csv_path = os.path.join(temp_dir, "unique_potholes.csv")
+#     unique_df.to_csv(unique_csv_path, index=False)
+
+#     return output_video_path, frames_folder, pothole_csv_path, unique_csv_path, gps_points_all
+
 def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     video = cv2.VideoCapture(video_path)
     output_video_path = os.path.join(temp_dir, "processed_video.mp4")
@@ -2086,13 +2154,18 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
 
         for item in merged:
             lat, lon = item[1], item[2]
-            centroid = compute_centroid(item[3], item[4], item[5], item[6])
+            confidence = item[7]
+
+            # Apply confidence threshold for uniqueness
+            if confidence < 0.65:
+                continue
+
             latlon_centroid = (lat, lon)
 
-            # Avoid double-counting similar potholes
+            # Avoid double-counting nearby potholes (threshold ~5 meters)
             is_unique = True
             for existing in unique_potholes_set:
-                if euclidean(latlon_centroid, existing) < 0.0002:
+                if euclidean(latlon_centroid, existing) < 0.00005:
                     is_unique = False
                     break
             if is_unique:
@@ -2117,6 +2190,7 @@ def process_video(video_path, gps_data, model, temp_dir, progress_bar):
     unique_df.to_csv(unique_csv_path, index=False)
 
     return output_video_path, frames_folder, pothole_csv_path, unique_csv_path, gps_points_all
+
 
 # Create map from GPS points
 def create_pothole_map(gps_points, heatmap=False):
