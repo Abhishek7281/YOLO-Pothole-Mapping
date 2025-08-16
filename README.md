@@ -38,11 +38,11 @@ cd Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-
 ````
 The repository already contains the trained results and weights for all three models, each stored in a dedicated folder:
 
-YOLOv10n(32epoch) → includes trained weights, logs, and detection outputs for YOLOv10n
+YOLOv10n(325epoch) → includes trained weights, logs, and detection outputs for YOLOv10n
 
-YOLO11n(32epoch) → includes trained weights, logs, and detection outputs for YOLO11n
+YOLO11n(325epoch) → includes trained weights, logs, and detection outputs for YOLO11n
 
-YOLO11s(32epoch) → includes trained weights, logs, and detection outputs for YOLO11s
+YOLO11s(325epoch) → includes trained weights, logs, and detection outputs for YOLO11s
 
 Users can directly explore these folders to access the results reported in the manuscript, without retraining.
 Install dependencies:
