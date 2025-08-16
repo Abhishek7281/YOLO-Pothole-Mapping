@@ -74,9 +74,10 @@ weights_path = "project_files/yolov11n.pt"
 
 ## 📁 Dataset
 
-* Frames were extracted from videos captured with an **Intel RealSense D455 depth camera** and GPS receiver.
-* Pre-processing included resizing (640×640), RGB conversion, augmentation (flip, brightness, rotation), and normalization.
-* Due to size constraints, raw video data is available upon request.
+* The dataset used in this study is publicly available at the following link:
+Google Drive Dataset Link : https://drive.google.com/file/d/1qEBV9wqBzuLbUBFnV_GBROCJLSoygrUT/view
+
+This dataset was prepared using the RoboFlow platform and contains 13,767 images with corresponding annotations for pothole detection. It can be directly used for training and evaluating YOLOv10n, YOLO11n, and YOLO11s models.
 
 ---
 
