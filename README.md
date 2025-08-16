@@ -98,12 +98,3 @@ If you use this repository, please cite our paper:
 ## 🙏 Acknowledgement
 
 We thank the reviewers for their valuable suggestions to make this repository open and reproducible for the research community.
-
-```
-
----
-
-⚡ This README highlights **reproducibility, data/code availability, and how to switch models** — exactly what the reviewer asked for.  
-
-Do you want me to also prepare a **short “Data Availability Statement”** that you can add at the end of your manuscript linking to this GitHub repo? That will address the reviewer more directly.
-```
