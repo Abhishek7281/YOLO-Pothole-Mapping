@@ -81,21 +81,6 @@ This dataset was prepared using the RoboFlow platform and contains 13,767 images
 
 ---
 
-## 📜 Citation
-
-If you use this repository, please cite our paper:
-
-```
-@article{your_paper_citation,
-  title   = {The Application of YOLO Models in Detecting Potholes Ensures Fast, Accurate, and Cost-Effective Solutions for Infrastructure Monitoring},
-  author  = {Abhishek Kumar Pathak et al.},
-  year    = {2025},
-  journal = {Journal Name}
-}
-```
-
----
-
 ## 🙏 Acknowledgement
 
 We thank the reviewers for their valuable suggestions to make this repository open and reproducible for the research community.
