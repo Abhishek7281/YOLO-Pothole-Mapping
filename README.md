@@ -1,8 +1,3 @@
-# yolov10n_pothole_detection
-Here's a detailed README.md content tailored for your repository, focusing on using YOLOv10n for pothole detection, with clear notes on how to use YOLO11n and YOLO11s by simply swapping weights.
-
----
-
 # Pothole Detection using YOLOv10n (and YOLO11n/YOLO11s)
 
 This repository demonstrates pothole detection in images and video using the [YOLOv10n](https://github.com/WongKinYiu/yolov10) model. The process is also compatible with YOLO11n and YOLO11s—simply swap the weights as described below to test or deploy different versions.
