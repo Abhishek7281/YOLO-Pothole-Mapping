@@ -72,8 +72,9 @@ pip install -r requirements.txt
 ## Training Process
 
 1. **Download or Prepare Weights**:  
-   - For YOLOv10n: [Download YOLOv10n weights](https://github.com/Abhishek7281/Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-/tree/main/YOLO11n(325epoch)/weights)
-   - For YOLO11n/s: Download respective weights or convert from official sources.
+   - For YOLOv10n: [Download YOLOv10n weights](https://github.com/Abhishek7281/Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-/tree/main/YOLOV10n(325epoch)/weights)
+   - For YOLO11n: [Download YOLO11n weights](https://github.com/Abhishek7281/Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-/tree/main/YOLO11n(325epoch)/weights)
+   - For YOLO11s: [Download YOLO11s weights](https://github.com/Abhishek7281/Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-/tree/main/YOLO11s(325epoch)/weights)
 
 2. **Start Training**:
    ```bash
