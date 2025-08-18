@@ -1,4 +1,4 @@
-# Pothole Detection using YOLOv10n, YOLO11n, and YOLO11s
+# 🛣️ Pothole Detection using YOLOv10n, YOLO11n, and YOLO11s
 
 This repository contains the implementation of our study on **pothole detection and mapping** using recent YOLO models (**YOLOv10n, YOLO11n, YOLO11s**).  
 The work was conducted to provide a **lightweight, real-time, and cost-effective framework** for infrastructure monitoring.
@@ -6,25 +6,29 @@ The work was conducted to provide a **lightweight, real-time, and cost-effective
 ---
 
 ## 📌 Features
-- Implementation of **YOLOv10n, YOLO11n, and YOLO11s** for pothole detection.
-- Pre-trained weight files included in the repository under `project_files/`.
-- Easy-to-use **Streamlit app (`app.py`)** for interactive detection and visualization.
-- Supports switching between YOLOv10n, YOLO11n, and YOLO11s by replacing the weight file path.
-- Includes results of all three models for reproducibility.
-- Integrated with **GPS and GIS mapping** for accurate localization (described in manuscript).
+- Implementation of **YOLOv10n, YOLO11n, and YOLO11s** for pothole detection.  
+- Pre-trained **weights, logs, and detection outputs** for all three models are included in this repository.  
+- Interactive **Streamlit app (`app.py`)** for real-time detection and visualization.  
+- Users can easily switch between YOLOv10n, YOLO11n, and YOLO11s by updating the weight path.  
+- Integration with **GPS and GIS mapping** for geographic localization (as described in the manuscript).  
+- Repository designed for **reproducibility** of results.  
 
 ---
 
 ## 📂 Repository Structure
 ```
 
-├── project\_files/        # Contains pre-trained YOLO weight files
-├── utils/                # Utility functions
-├── .streamlit/           # Streamlit configuration
-├── app.py                # Streamlit app for pothole detection
-├── requirements.txt      # Python dependencies
+├── YOLOv10n(325epoch)/ # Trained weights, logs, detection results for YOLOv10n
+├── YOLO11n(325epoch)/ # Trained weights, logs, detection results for YOLO11n
+├── YOLO11s(325epoch)/ # Trained weights, logs, detection results for YOLO11s
+├── project_files/ # Extra utility files
+├── utils/ # Helper functions
+├── .streamlit/ # Streamlit configuration
+├── app.py # Streamlit app
+├── YOLO_run.ipynb # Jupyter Notebook (training & evaluation workflow)
+├── requirements.txt # Python dependencies
 ├── packages.txt
-└── README.md             # Documentation
+└── README.md # Documentation
 
 ````
 
@@ -33,8 +37,8 @@ The work was conducted to provide a **lightweight, real-time, and cost-effective
 ## ⚙️ Installation
 Clone the repository:
 ```bash
-git clone https://github.com/Abhishek7281/Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-.git
-cd Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-
+git clone https://github.com/Abhishek7281/YOLO-Pothole-Mapping.git
+cd YOLO-Pothole-Mapping
 ````
 
  The repository already contains the trained results and weights for all three models, each stored in a dedicated folder:
@@ -45,7 +49,15 @@ cd Potholes-Detection-Using-YOLOV10n-YOLO11n-and-YOLO11s-
 
  YOLO11s(325epoch) → includes trained weights, logs, and detection outputs for YOLO11s
 
- Users can directly explore these folders to access the results reported in the manuscript, without retraining.
+ The repository already contains the trained weights, logs, and outputs for all three models:
+
+YOLOv10n(325epoch) → weights, logs, detection outputs for YOLOv10n
+
+YOLO11n(325epoch) → weights, logs, detection outputs for YOLO11n
+
+YOLO11s(325epoch) → weights, logs, detection outputs for YOLO11s
+
+👉 Users can directly explore these folders to reproduce the results reported in the manuscript without retraining.
 
 Install dependencies:
 
@@ -74,6 +86,11 @@ weights_path = "project_files/yolov11n.pt"
 ```
 
 ---
+
+### 🔹 Access the hosted Streamlit app  
+
+👉 [Live Streamlit Demo](https://yolov10pothoholedetection1-gy4agffbzk76s8rszcu3jy.streamlit.app/)  
+
 
 ## 📊 Results
 
